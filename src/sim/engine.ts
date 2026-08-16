@@ -57,12 +57,32 @@ export function pointAtKm(route: RouteGeometry, km: number): { pos: Pt; heading:
   };
 }
 
-/** Kilometre position along a route where a schematic point is traversed. */
-export function kmOfPoint(route: RouteGeometry, target: Pt): number | null {
-  for (let i = 0; i < route.points.length; i++) {
-    if (dist(route.points[i]!, target) < 6) return route.cumulativeKm[i]!;
+/**
+ * Kilometre position along a route where a schematic point is traversed.
+ * The point is projected onto each segment; a route that never passes within
+ * tolerance of the point does not use that resource.
+ */
+export function kmOfPoint(route: RouteGeometry, target: Pt, tolerancePx = 6): number | null {
+  let bestKm: number | null = null;
+  let bestD = Infinity;
+  for (let i = 1; i < route.points.length; i++) {
+    const a = route.points[i - 1]!;
+    const b = route.points[i]!;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy || 1e-9;
+    const f = Math.max(0, Math.min(1, ((target.x - a.x) * dx + (target.y - a.y) * dy) / len2));
+    const px = a.x + dx * f;
+    const py = a.y + dy * f;
+    const d = Math.hypot(target.x - px, target.y - py);
+    if (d < bestD) {
+      bestD = d;
+      bestKm =
+        route.cumulativeKm[i - 1]! +
+        (route.cumulativeKm[i]! - route.cumulativeKm[i - 1]!) * f;
+    }
   }
-  return null;
+  return bestD <= tolerancePx ? bestKm : null;
 }
 
 export const RESOURCES: Record<string, { label: string; point: Pt }> = {
