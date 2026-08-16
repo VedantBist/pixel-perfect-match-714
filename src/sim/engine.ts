@@ -142,6 +142,8 @@ export function runSimulation(
     let km = startKm;
     for (let t = 0; t < N; t++) {
       let v = train.cruiseKmh * speedFactor;
+      // Goods loop carries a permanent 25 km/h line restriction.
+      if (routeKey === "ALT") v = Math.min(v, 25);
       if (cap?.capKmh != null && t >= cap.fromT) v = Math.min(v, cap.capKmh);
       if (hold && t >= hold.fromT && t < hold.fromT + (hold.holdS ?? 0)) v = 0;
       if (km >= route.lengthKm) v = 0;
