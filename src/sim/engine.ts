@@ -36,9 +36,9 @@ export function buildRoute(trackIds: string[]): RouteGeometry {
       if (!last || dist(last, p) > 0.5) points.push(p);
     }
   }
-  const cumulativeKm = [0];
+  const cumulativeKm: number[] = [0];
   for (let i = 1; i < points.length; i++) {
-    cumulativeKm.push(cumulativeKm[i - 1] + dist(points[i - 1], points[i]) * KM_PER_PX);
+    cumulativeKm.push(cumulativeKm[i - 1]! + dist(points[i - 1]!, points[i]!) * KM_PER_PX);
   }
   return { points, cumulativeKm, lengthKm: cumulativeKm[cumulativeKm.length - 1] ?? 0 };
 }
@@ -46,11 +46,11 @@ export function buildRoute(trackIds: string[]): RouteGeometry {
 export function pointAtKm(route: RouteGeometry, km: number): { pos: Pt; heading: number } {
   const clamped = Math.max(0, Math.min(km, route.lengthKm));
   let i = 1;
-  while (i < route.cumulativeKm.length - 1 && route.cumulativeKm[i] < clamped) i++;
-  const a = route.points[i - 1];
-  const b = route.points[i];
-  const segKm = route.cumulativeKm[i] - route.cumulativeKm[i - 1] || 1e-6;
-  const f = (clamped - route.cumulativeKm[i - 1]) / segKm;
+  while (i < route.cumulativeKm.length - 1 && route.cumulativeKm[i]! < clamped) i++;
+  const a = route.points[i - 1]!;
+  const b = route.points[i]!;
+  const segKm = route.cumulativeKm[i]! - route.cumulativeKm[i - 1]! || 1e-6;
+  const f = (clamped - route.cumulativeKm[i - 1]!) / segKm;
   return {
     pos: { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f },
     heading: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI,
@@ -60,7 +60,7 @@ export function pointAtKm(route: RouteGeometry, km: number): { pos: Pt; heading:
 /** Kilometre position along a route where a schematic point is traversed. */
 export function kmOfPoint(route: RouteGeometry, target: Pt): number | null {
   for (let i = 0; i < route.points.length; i++) {
-    if (dist(route.points[i], target) < 6) return route.cumulativeKm[i];
+    if (dist(route.points[i]!, target) < 6) return route.cumulativeKm[i]!;
   }
   return null;
 }
@@ -69,7 +69,7 @@ export const RESOURCES: Record<string, { label: string; point: Pt }> = {
   J2_UP_ROUTE: { label: "J2 up route — west throat", point: J2 },
   J5_YARD_ROUTE: {
     label: "J5 yard route — east throat",
-    point: JUNCTIONS[1].at,
+    point: JUNCTIONS[1]!.at,
   },
 };
 
@@ -93,7 +93,7 @@ const DT = 1;
 const N = HORIZON_S + 1;
 
 function disruptionFor(id: DisruptionId): DisruptionDef {
-  return DISRUPTIONS.find((d) => d.id === id) ?? DISRUPTIONS[0];
+  return DISRUPTIONS.find((d) => d.id === id) ?? DISRUPTIONS[0]!;
 }
 
 export function runSimulation(
@@ -145,13 +145,13 @@ export function runSimulation(
 }
 
 export function arrivalTimeAtKm(run: TrainRun, km: number): number | null {
-  if (run.kmAt[0] > km) return null;
-  for (let t = 0; t < N; t++) if (run.kmAt[t] >= km) return t;
+  if (run.kmAt[0]! > km) return null;
+  for (let t = 0; t < N; t++) if (run.kmAt[t]! >= km) return t;
   return null;
 }
 
 function blockLabel(run: TrainRun, t: number): string {
-  const km = run.kmAt[t];
+  const km = run.kmAt[t] ?? 0;
   const ids = run.routeKey === "ALT" ? run.train.altRoute! : run.train.route;
   let acc = 0;
   for (const id of ids) {
@@ -165,10 +165,10 @@ function blockLabel(run: TrainRun, t: number): string {
 export function trainStates(sim: SimRun, t: number, free: SimRun): TrainRuntimeState[] {
   const tt = Math.max(0, Math.min(Math.round(t), N - 1));
   return Object.values(sim.runs).map((run) => {
-    const km = run.kmAt[tt];
+    const km = run.kmAt[tt] ?? 0;
     const { pos, heading } = pointAtKm(run.route, km);
     const freeRun = free.runs[run.train.id];
-    const lostKm = freeRun ? Math.max(0, freeRun.kmAt[tt] - km) : 0;
+    const lostKm = freeRun ? Math.max(0, (freeRun.kmAt[tt] ?? 0) - km) : 0;
     const induced = (lostKm / Math.max(run.train.cruiseKmh, 1)) * 60;
     const resourceKm = kmOfPoint(run.route, J2);
     const eta =
@@ -179,7 +179,7 @@ export function trainStates(sim: SimRun, t: number, free: SimRun): TrainRuntimeS
     let state: TrainRuntimeState["state"] = "RUNNING";
     if (run.train.type === "YARD") state = "SHUNTING";
     if (km >= run.route.lengthKm - 0.01) state = "CLEARED";
-    else if (run.speedAt[tt] === 0) state = "HELD";
+    else if ((run.speedAt[tt] ?? 0) === 0) state = "HELD";
     else if (run.capKmh != null && tt >= 0 && run.capKmh < run.train.cruiseKmh) state = "REGULATED";
     else if (run.routeKey === "ALT") state = "REROUTED";
 
@@ -188,7 +188,7 @@ export function trainStates(sim: SimRun, t: number, free: SimRun): TrainRuntimeS
       km,
       pos,
       heading,
-      speedKmh: Math.round(run.speedAt[tt]),
+      speedKmh: Math.round(run.speedAt[tt] ?? 0),
       delayMin: run.train.entryDelayMin + induced,
       etaMinToJunction: eta,
       block: blockLabel(run, tt),
@@ -223,12 +223,12 @@ export function detectConflicts(sim: SimRun, now: number): Conflict[] {
   for (const [resourceId, resource] of Object.entries(RESOURCES)) {
     const arrivals = resourceArrivals(sim, resourceId).filter((a) => a.atT >= now - 30);
     for (let i = 1; i < arrivals.length; i++) {
-      const first = arrivals[i - 1];
-      const second = arrivals[i];
+      const first = arrivals[i - 1]!;
+      const second = arrivals[i]!;
       const separation = second.atT - first.atT;
       if (separation >= REQUIRED_HEADWAY_S) continue;
-      const a = sim.runs[first.trainId].train;
-      const b = sim.runs[second.trainId].train;
+      const a = sim.runs[first.trainId]!.train;
+      const b = sim.runs[second.trainId]!.train;
       conflicts.push({
         id: `${resourceId}-${a.id}-${b.id}`,
         kind: "JUNCTION_CONTENTION",
@@ -365,7 +365,7 @@ export function delayTotals(sim: SimRun, free: SimRun, at: number) {
   const byTrain: Record<string, number> = {};
   for (const run of Object.values(sim.runs)) {
     const freeRun = free.runs[run.train.id];
-    const lostKm = Math.max(0, freeRun.kmAt[tt] - run.kmAt[tt]);
+    const lostKm = Math.max(0, (freeRun?.kmAt[tt] ?? 0) - (run.kmAt[tt] ?? 0));
     const induced = (lostKm / Math.max(run.train.cruiseKmh, 1)) * 60;
     byTrain[run.train.id] = induced;
     if (run.train.type === "FREIGHT" || run.train.type === "YARD") freight += induced;
@@ -377,7 +377,7 @@ export function delayTotals(sim: SimRun, free: SimRun, at: number) {
 function throughput(sim: SimRun, at: number): number {
   const tt = Math.min(Math.max(Math.round(at), 0), N - 1);
   let moving = 0;
-  for (const run of Object.values(sim.runs)) if (run.speedAt[tt] > 0) moving++;
+  for (const run of Object.values(sim.runs)) if ((run.speedAt[tt] ?? 0) > 0) moving++;
   // section throughput expressed as trains per hour over the observed window
   return Math.round(moving * (3600 / 600) * 10) / 10;
 }
