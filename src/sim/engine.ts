@@ -164,6 +164,17 @@ export function runSimulation(
   return { runs, actions, disruption };
 }
 
+/**
+ * Projected running time to destination, seconds. Used as the single basis for
+ * delay: it is comparable across speed regulation, holds and reroutes.
+ */
+export function projectedRunTimeS(run: TrainRun): number {
+  const t = arrivalTimeAtKm(run, run.route.lengthKm);
+  if (t != null) return t;
+  const remainingKm = run.route.lengthKm - (run.kmAt[N - 1] ?? 0);
+  return N - 1 + (remainingKm / Math.max(run.train.cruiseKmh, 1)) * 3600;
+}
+
 export function arrivalTimeAtKm(run: TrainRun, km: number): number | null {
   if (run.kmAt[0]! > km) return null;
   for (let t = 0; t < N; t++) if (run.kmAt[t]! >= km) return t;
@@ -188,8 +199,9 @@ export function trainStates(sim: SimRun, t: number, free: SimRun): TrainRuntimeS
     const km = run.kmAt[tt] ?? 0;
     const { pos, heading } = pointAtKm(run.route, km);
     const freeRun = free.runs[run.train.id];
-    const lostKm = freeRun ? Math.max(0, (freeRun.kmAt[tt] ?? 0) - km) : 0;
-    const induced = (lostKm / Math.max(run.train.cruiseKmh, 1)) * 60;
+    const induced = freeRun
+      ? Math.max(0, (projectedRunTimeS(run) - projectedRunTimeS(freeRun)) / 60)
+      : 0;
     const resourceKm = kmOfPoint(run.route, J2);
     const eta =
       resourceKm != null && km < resourceKm
@@ -383,10 +395,12 @@ export function delayTotals(sim: SimRun, free: SimRun, at: number) {
   let passenger = 0;
   let freight = 0;
   const byTrain: Record<string, number> = {};
+  void tt;
   for (const run of Object.values(sim.runs)) {
     const freeRun = free.runs[run.train.id];
-    const lostKm = Math.max(0, (freeRun?.kmAt[tt] ?? 0) - (run.kmAt[tt] ?? 0));
-    const induced = (lostKm / Math.max(run.train.cruiseKmh, 1)) * 60;
+    const induced = freeRun
+      ? Math.max(0, (projectedRunTimeS(run) - projectedRunTimeS(freeRun)) / 60)
+      : 0;
     byTrain[run.train.id] = induced;
     if (run.train.type === "FREIGHT" || run.train.type === "YARD") freight += induced;
     else passenger += induced;
