@@ -62,6 +62,8 @@ export interface AppliedAction {
   fromT: number;
   /** SPEED_REGULATION: capped speed in km/h */
   capKmh?: number;
+  /** SPEED_REGULATION: simulation seconds at which the restriction is lifted */
+  untilT?: number;
   /** HOLD: duration in seconds */
   holdS?: number;
   /** REROUTE: alternate path key on the train */

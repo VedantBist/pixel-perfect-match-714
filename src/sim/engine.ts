@@ -101,6 +101,8 @@ export interface TrainRun {
   speedAt: Float64Array;
   heldUntil: number | null;
   capKmh: number | null;
+  capFromT: number | null;
+  capUntilT: number | null;
 }
 
 export interface SimRun {
@@ -144,7 +146,8 @@ export function runSimulation(
       let v = train.cruiseKmh * speedFactor;
       // Goods loop carries a permanent 25 km/h line restriction.
       if (routeKey === "ALT") v = Math.min(v, 25);
-      if (cap?.capKmh != null && t >= cap.fromT) v = Math.min(v, cap.capKmh);
+      if (cap?.capKmh != null && t >= cap.fromT && t < (cap.untilT ?? Infinity))
+        v = Math.min(v, cap.capKmh);
       if (hold && t >= hold.fromT && t < hold.fromT + (hold.holdS ?? 0)) v = 0;
       if (km >= route.lengthKm) v = 0;
       kmAt[t] = Math.min(km, route.lengthKm);
@@ -160,6 +163,8 @@ export function runSimulation(
       speedAt: speeds,
       heldUntil: hold ? hold.fromT + (hold.holdS ?? 0) : null,
       capKmh: cap?.capKmh ?? null,
+      capFromT: cap?.fromT ?? null,
+      capUntilT: cap?.untilT ?? null,
     };
   }
 
@@ -215,7 +220,13 @@ export function trainStates(sim: SimRun, t: number, free: SimRun): TrainRuntimeS
     if (run.train.type === "YARD") state = "SHUNTING";
     if (km >= run.route.lengthKm - 0.01) state = "CLEARED";
     else if ((run.speedAt[tt] ?? 0) === 0) state = "HELD";
-    else if (run.capKmh != null && tt >= 0 && run.capKmh < run.train.cruiseKmh) state = "REGULATED";
+    else if (
+      run.capKmh != null &&
+      run.capKmh < run.train.cruiseKmh &&
+      tt >= run.capFromT! &&
+      tt < (run.capUntilT ?? Infinity)
+    )
+      state = "REGULATED";
     else if (run.routeKey === "ALT") state = "REROUTED";
 
     return {
@@ -348,8 +359,14 @@ export function optionSpecs(conflict: Conflict, now: number): OptionSpec[] {
     {
       id: "A",
       label: "Regulate freight speed",
-      summary: `Regulate ${conflict.trainA} to 30 km/h so the express takes the route window first.`,
-      action: { kind: "SPEED_REGULATION", trainId: conflict.trainA, fromT: at, capKmh: 30 },
+      summary: `Regulate ${conflict.trainA} to 30 km/h for 7 minutes so the express takes the route window first.`,
+      action: {
+        kind: "SPEED_REGULATION",
+        trainId: conflict.trainA,
+        fromT: at,
+        capKmh: 30,
+        untilT: at + 420,
+      },
       infrastructureChange: "NONE",
       routeChange: false,
       actsOnResource: true,
