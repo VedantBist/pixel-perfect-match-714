@@ -174,7 +174,8 @@ export function projectedRunTimeS(run: TrainRun): number {
   const t = arrivalTimeAtKm(run, run.route.lengthKm);
   if (t != null) return t;
   const remainingKm = run.route.lengthKm - (run.kmAt[N - 1] ?? 0);
-  return N - 1 + (remainingKm / Math.max(run.train.cruiseKmh, 1)) * 3600;
+  const endSpeed = Math.max(run.speedAt[N - 1] ?? run.train.cruiseKmh, 1);
+  return N - 1 + (remainingKm / endSpeed) * 3600;
 }
 
 export function arrivalTimeAtKm(run: TrainRun, km: number): number | null {
