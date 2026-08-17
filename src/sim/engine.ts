@@ -148,7 +148,12 @@ export function runSimulation(
       if (routeKey === "ALT") v = Math.min(v, 25);
       if (cap?.capKmh != null && t >= cap.fromT && t < (cap.untilT ?? Infinity))
         v = Math.min(v, cap.capKmh);
-      if (hold && t >= hold.fromT && t < hold.fromT + (hold.holdS ?? 0)) v = 0;
+      if (hold) {
+        const holdEnd = hold.fromT + (hold.holdS ?? 0);
+        if (t >= hold.fromT && t < holdEnd) v = 0;
+        // Restart penalty: a stopped movement re-accelerates over the next 2 min.
+        else if (t >= holdEnd && t < holdEnd + 120) v = Math.min(v, v * 0.4);
+      }
       if (km >= route.lengthKm) v = 0;
       kmAt[t] = Math.min(km, route.lengthKm);
       speeds[t] = v;
@@ -359,13 +364,13 @@ export function optionSpecs(conflict: Conflict, now: number): OptionSpec[] {
     {
       id: "A",
       label: "Regulate freight speed",
-      summary: `Regulate ${conflict.trainA} to 30 km/h for 7 minutes so the express takes the route window first.`,
+      summary: `Regulate ${conflict.trainA} to 26 km/h for 8 minutes so the express takes the route window first.`,
       action: {
         kind: "SPEED_REGULATION",
         trainId: conflict.trainA,
         fromT: at,
-        capKmh: 30,
-        untilT: at + 420,
+        capKmh: 26,
+        untilT: at + 480,
       },
       infrastructureChange: "NONE",
       routeChange: false,
