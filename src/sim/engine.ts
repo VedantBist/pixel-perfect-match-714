@@ -57,6 +57,20 @@ export function pointAtKm(route: RouteGeometry, km: number): { pos: Pt; heading:
   };
 }
 
+/** Polyline of the route between two chainages — used for projected paths. */
+export function segmentBetweenKm(route: RouteGeometry, fromKm: number, toKm: number): Pt[] {
+  const a = Math.max(0, Math.min(fromKm, route.lengthKm));
+  const b = Math.max(0, Math.min(toKm, route.lengthKm));
+  if (b <= a) return [];
+  const pts: Pt[] = [pointAtKm(route, a).pos];
+  for (let i = 0; i < route.points.length; i++) {
+    const km = route.cumulativeKm[i]!;
+    if (km > a && km < b) pts.push(route.points[i]!);
+  }
+  pts.push(pointAtKm(route, b).pos);
+  return pts;
+}
+
 /**
  * Kilometre position along a route where a schematic point is traversed.
  * The point is projected onto each segment; a route that never passes within
