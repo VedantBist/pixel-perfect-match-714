@@ -181,7 +181,7 @@ export interface DecisionLogEntry {
   atT: number;
   kind: "PREDICTION" | "ALTERNATIVES" | "VALIDATION" | "RECOMMENDATION" | "DECISION" | "STATE";
   text: string;
-  detail?: string;
+  detail?: string | undefined;
 }
 
 export type DisruptionId =

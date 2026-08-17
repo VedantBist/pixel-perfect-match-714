@@ -206,8 +206,9 @@ export function TwinProvider({ children }: { children: ReactNode }) {
   const accept = useCallback(
     (optionId: string) => {
       const option = options.find((o) => o.id === optionId);
-      if (!option?.action) return;
-      applyAction(option.action);
+      const chosen = option?.action;
+      if (!option || !chosen) return;
+      applyAction(chosen);
       setDecisionStatus("ACCEPTED");
       setSelectedOptionId(optionId);
       setLog((prev) => [
@@ -216,7 +217,7 @@ export function TwinProvider({ children }: { children: ReactNode }) {
           simTime,
           "DECISION",
           `Controller accepted — ${option.label}`,
-          `${option.action.trainId} · network impact +${option.networkDelayMin.toFixed(1)} min`,
+          `${chosen.trainId} · network impact +${option.networkDelayMin.toFixed(1)} min`,
         ),
         entry(simTime, "STATE", "Digital twin updated — projected conflict cleared"),
       ]);
@@ -240,13 +241,14 @@ export function TwinProvider({ children }: { children: ReactNode }) {
   const modify = useCallback(
     (optionId: string, capKmh: number) => {
       const option = options.find((o) => o.id === optionId);
-      if (!option?.action) return;
+      const base = option?.action;
+      if (!option || !base) return;
       const action: AppliedAction = {
-        ...option.action,
         kind: "SPEED_REGULATION",
+        trainId: base.trainId,
+        fromT: Math.round(simTime),
         capKmh,
         untilT: Math.round(simTime) + 480,
-        holdS: undefined,
       };
       applyAction(action);
       setDecisionStatus("MODIFIED");
