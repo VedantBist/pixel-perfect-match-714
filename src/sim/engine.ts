@@ -57,6 +57,20 @@ export function pointAtKm(route: RouteGeometry, km: number): { pos: Pt; heading:
   };
 }
 
+/** Polyline of the route between two chainages — used for projected paths. */
+export function segmentBetweenKm(route: RouteGeometry, fromKm: number, toKm: number): Pt[] {
+  const a = Math.max(0, Math.min(fromKm, route.lengthKm));
+  const b = Math.max(0, Math.min(toKm, route.lengthKm));
+  if (b <= a) return [];
+  const pts: Pt[] = [pointAtKm(route, a).pos];
+  for (let i = 0; i < route.points.length; i++) {
+    const km = route.cumulativeKm[i]!;
+    if (km > a && km < b) pts.push(route.points[i]!);
+  }
+  pts.push(pointAtKm(route, b).pos);
+  return pts;
+}
+
 /**
  * Kilometre position along a route where a schematic point is traversed.
  * The point is projected onto each segment; a route that never passes within
@@ -101,6 +115,8 @@ export interface TrainRun {
   speedAt: Float64Array;
   heldUntil: number | null;
   capKmh: number | null;
+  capFromT: number | null;
+  capUntilT: number | null;
 }
 
 export interface SimRun {
@@ -144,8 +160,14 @@ export function runSimulation(
       let v = train.cruiseKmh * speedFactor;
       // Goods loop carries a permanent 25 km/h line restriction.
       if (routeKey === "ALT") v = Math.min(v, 25);
-      if (cap?.capKmh != null && t >= cap.fromT) v = Math.min(v, cap.capKmh);
-      if (hold && t >= hold.fromT && t < hold.fromT + (hold.holdS ?? 0)) v = 0;
+      if (cap?.capKmh != null && t >= cap.fromT && t < (cap.untilT ?? Infinity))
+        v = Math.min(v, cap.capKmh);
+      if (hold) {
+        const holdEnd = hold.fromT + (hold.holdS ?? 0);
+        if (t >= hold.fromT && t < holdEnd) v = 0;
+        // Restart penalty: a stopped movement re-accelerates over the next 2 min.
+        else if (t >= holdEnd && t < holdEnd + 120) v = Math.min(v, v * 0.4);
+      }
       if (km >= route.lengthKm) v = 0;
       kmAt[t] = Math.min(km, route.lengthKm);
       speeds[t] = v;
@@ -160,6 +182,8 @@ export function runSimulation(
       speedAt: speeds,
       heldUntil: hold ? hold.fromT + (hold.holdS ?? 0) : null,
       capKmh: cap?.capKmh ?? null,
+      capFromT: cap?.fromT ?? null,
+      capUntilT: cap?.untilT ?? null,
     };
   }
 
@@ -174,7 +198,8 @@ export function projectedRunTimeS(run: TrainRun): number {
   const t = arrivalTimeAtKm(run, run.route.lengthKm);
   if (t != null) return t;
   const remainingKm = run.route.lengthKm - (run.kmAt[N - 1] ?? 0);
-  return N - 1 + (remainingKm / Math.max(run.train.cruiseKmh, 1)) * 3600;
+  const endSpeed = Math.max(run.speedAt[N - 1] ?? run.train.cruiseKmh, 1);
+  return N - 1 + (remainingKm / endSpeed) * 3600;
 }
 
 export function arrivalTimeAtKm(run: TrainRun, km: number): number | null {
@@ -214,7 +239,13 @@ export function trainStates(sim: SimRun, t: number, free: SimRun): TrainRuntimeS
     if (run.train.type === "YARD") state = "SHUNTING";
     if (km >= run.route.lengthKm - 0.01) state = "CLEARED";
     else if ((run.speedAt[tt] ?? 0) === 0) state = "HELD";
-    else if (run.capKmh != null && tt >= 0 && run.capKmh < run.train.cruiseKmh) state = "REGULATED";
+    else if (
+      run.capKmh != null &&
+      run.capKmh < run.train.cruiseKmh &&
+      tt >= run.capFromT! &&
+      tt < (run.capUntilT ?? Infinity)
+    )
+      state = "REGULATED";
     else if (run.routeKey === "ALT") state = "REROUTED";
 
     return {
@@ -347,8 +378,14 @@ export function optionSpecs(conflict: Conflict, now: number): OptionSpec[] {
     {
       id: "A",
       label: "Regulate freight speed",
-      summary: `Regulate ${conflict.trainA} to 30 km/h so the express takes the route window first.`,
-      action: { kind: "SPEED_REGULATION", trainId: conflict.trainA, fromT: at, capKmh: 30 },
+      summary: `Regulate ${conflict.trainA} to 26 km/h for 8 minutes so the express takes the route window first.`,
+      action: {
+        kind: "SPEED_REGULATION",
+        trainId: conflict.trainA,
+        fromT: at,
+        capKmh: 26,
+        untilT: at + 480,
+      },
       infrastructureChange: "NONE",
       routeChange: false,
       actsOnResource: true,
