@@ -122,7 +122,7 @@ export function TwinMap({ compact = false }: { compact?: boolean }) {
   }, [conflict, twin.sim]);
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col bg-map">
+    <div className="relative flex max-h-[70vh] min-h-0 flex-1 flex-col bg-map">
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-1.5">
         <span className="label-xs">Layers</span>
         {(
@@ -150,7 +150,7 @@ export function TwinMap({ compact = false }: { compact?: boolean }) {
 
       <svg
         viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
-        className={compact ? "h-full w-full" : "min-h-0 w-full flex-1"}
+        className={compact ? "h-full w-full" : "mx-auto min-h-0 w-full flex-1 self-center"}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Vasai Road Junction operational diagram"

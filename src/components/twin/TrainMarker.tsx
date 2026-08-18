@@ -29,7 +29,6 @@ export function TrainMarker({
   const length = state.train.type === "FREIGHT" ? 38 : state.train.type === "YARD" ? 16 : 28;
   const height = state.train.type === "YARD" ? 8 : 10;
   const nose = 7;
-  const flip = Math.abs(state.heading) > 90 ? -1 : 1;
 
   return (
     <g
@@ -59,7 +58,7 @@ export function TrainMarker({
         <line x1={0} x2={0} y1={-height / 2} y2={height / 2} stroke={t.stroke} strokeWidth={0.8} opacity={0.6} />
       )}
       {showLabel ? (
-        <g transform={`rotate(${flip === 1 ? -state.heading : 180 - state.heading})`}>
+        <g transform={`rotate(${-state.heading})`}>
           <text
             x={0}
             y={-height - 5}
