@@ -8,7 +8,7 @@ export function Panel({
   as: As = "section",
 }: {
   children: ReactNode;
-  className?: string;
+  className?: string | undefined;
   as?: "section" | "div" | "aside";
 }) {
   return (
@@ -25,7 +25,7 @@ export function PanelHead({
   right,
 }: {
   title: string;
-  meta?: string;
+  meta?: string | undefined;
   tone?: "neutral" | "conflict" | "ok" | "warning";
   right?: ReactNode;
 }) {
@@ -58,7 +58,7 @@ export function Metric({
   value: string;
   unit?: string;
   tone?: "neutral" | "conflict" | "ok" | "warning" | "dim";
-  hint?: string;
+  hint?: string | undefined;
 }) {
   const color =
     tone === "conflict"
@@ -123,8 +123,8 @@ export function Btn({
   variant?: "default" | "primary" | "danger" | "quiet";
   active?: boolean;
   disabled?: boolean;
-  className?: string;
-  title?: string;
+  className?: string | undefined;
+  title?: string | undefined;
 }) {
   const styles: Record<string, string> = {
     default: "border-line-strong bg-raised text-ink hover:border-selected/70",

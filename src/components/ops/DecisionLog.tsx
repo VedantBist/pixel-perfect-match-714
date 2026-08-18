@@ -11,7 +11,7 @@ const KIND_TONE: Record<string, string> = {
   STATE: "text-ink-dim",
 };
 
-export function DecisionLog({ className }: { className?: string }) {
+export function DecisionLog({ className }: { className?: string | undefined }) {
   const twin = useTwin();
   return (
     <Panel className={className}>
