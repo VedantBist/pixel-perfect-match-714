@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConflictRouteImport } from './routes/conflict'
 import { Route as DecisionRouteImport } from './routes/decision'
+import { Route as ScenarioRouteImport } from './routes/scenario'
 import { Route as WhatIfRouteImport } from './routes/what-if'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const DecisionRoute = DecisionRouteImport.update({
   path: '/decision',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScenarioRoute = ScenarioRouteImport.update({
+  id: '/scenario',
+  path: '/scenario',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WhatIfRoute = WhatIfRouteImport.update({
   id: '/what-if',
   path: '/what-if',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/conflict': typeof ConflictRoute
   '/decision': typeof DecisionRoute
+  '/scenario': typeof ScenarioRoute
   '/what-if': typeof WhatIfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/conflict': typeof ConflictRoute
   '/decision': typeof DecisionRoute
+  '/scenario': typeof ScenarioRoute
   '/what-if': typeof WhatIfRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/conflict': typeof ConflictRoute
   '/decision': typeof DecisionRoute
+  '/scenario': typeof ScenarioRoute
   '/what-if': typeof WhatIfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/conflict' | '/decision' | '/what-if'
+  fullPaths: '/' | '/conflict' | '/decision' | '/scenario' | '/what-if'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/conflict' | '/decision' | '/what-if'
-  id: '__root__' | '/' | '/conflict' | '/decision' | '/what-if'
+  to: '/' | '/conflict' | '/decision' | '/scenario' | '/what-if'
+  id: '__root__' | '/' | '/conflict' | '/decision' | '/scenario' | '/what-if'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConflictRoute: typeof ConflictRoute
   DecisionRoute: typeof DecisionRoute
+  ScenarioRoute: typeof ScenarioRoute
   WhatIfRoute: typeof WhatIfRoute
 }
 
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecisionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/scenario': {
+      id: '/scenario'
+      path: '/scenario'
+      fullPath: '/scenario'
+      preLoaderRoute: typeof ScenarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/what-if': {
       id: '/what-if'
       path: '/what-if'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConflictRoute: ConflictRoute,
   DecisionRoute: DecisionRoute,
+  ScenarioRoute: ScenarioRoute,
   WhatIfRoute: WhatIfRoute,
 }
 export const routeTree = rootRouteImport
