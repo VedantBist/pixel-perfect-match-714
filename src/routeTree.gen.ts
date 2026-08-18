@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConflictRouteImport } from './routes/conflict'
+import { Route as DecisionRouteImport } from './routes/decision'
 import { Route as WhatIfRouteImport } from './routes/what-if'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const ConflictRoute = ConflictRouteImport.update({
   path: '/conflict',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DecisionRoute = DecisionRouteImport.update({
+  id: '/decision',
+  path: '/decision',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WhatIfRoute = WhatIfRouteImport.update({
   id: '/what-if',
   path: '/what-if',
@@ -32,30 +38,34 @@ const WhatIfRoute = WhatIfRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/conflict': typeof ConflictRoute
+  '/decision': typeof DecisionRoute
   '/what-if': typeof WhatIfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/conflict': typeof ConflictRoute
+  '/decision': typeof DecisionRoute
   '/what-if': typeof WhatIfRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/conflict': typeof ConflictRoute
+  '/decision': typeof DecisionRoute
   '/what-if': typeof WhatIfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/conflict' | '/what-if'
+  fullPaths: '/' | '/conflict' | '/decision' | '/what-if'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/conflict' | '/what-if'
-  id: '__root__' | '/' | '/conflict' | '/what-if'
+  to: '/' | '/conflict' | '/decision' | '/what-if'
+  id: '__root__' | '/' | '/conflict' | '/decision' | '/what-if'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConflictRoute: typeof ConflictRoute
+  DecisionRoute: typeof DecisionRoute
   WhatIfRoute: typeof WhatIfRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConflictRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/decision': {
+      id: '/decision'
+      path: '/decision'
+      fullPath: '/decision'
+      preLoaderRoute: typeof DecisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/what-if': {
       id: '/what-if'
       path: '/what-if'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConflictRoute: ConflictRoute,
+  DecisionRoute: DecisionRoute,
   WhatIfRoute: WhatIfRoute,
 }
 export const routeTree = rootRouteImport
